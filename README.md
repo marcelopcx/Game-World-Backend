@@ -33,10 +33,15 @@ El cliente móvil está en el repositorio del frontend dentro de `02 - Game Worl
    chmod +x scripts/*.sh
    ```
 
-3. **Inicializá el entorno** (`.env` y PostgreSQL con Docker):
+3. **Inicializá el entorno** (`.env`, Docker, esquema y catálogo base):
    ```bash
    make setup
    ```
+   Este comando realiza automáticamente:
+   * Crea `.env` desde `.env.example` si no existe.
+   * Levanta PostgreSQL con Docker Compose.
+   * Aplica el esquema `game_world` (tablas, índices y triggers).
+   * Carga géneros y plataformas iniciales (`db/seed_data.sql`).
 
 4. **Revisá las variables de entorno** en `.env` si hace falta:
    ```env
@@ -78,7 +83,7 @@ cargo run
 - `src/models/` — Structs de request/response y filas de BD *(vacío, listo para completar)*.
 - `src/routes/` — Registro de servicios Actix (`configure`).
 - `src/error/` — Errores de API unificados (`ApiError`).
-- `db/` — Esquema SQL y datos semilla *(pendiente de definir)*.
+- `db/` — Esquema SQL (`game_world.sql`) y catálogo semilla (`seed_data.sql`).
 - `scripts/` — `setup.sh` y `reset-db.sh`.
 - `api/` — Colección [Bruno](https://www.usebruno.com/) para probar endpoints.
 - `docker-compose.yml` — PostgreSQL 16 en contenedor.
@@ -88,7 +93,7 @@ cargo run
 
 ## Próximos pasos sugeridos
 
-1. Definir el esquema SQL en `db/` (schema `game_world`).
-2. Agregar modelos en `src/models/` y servicios en `src/services/`.
-3. Registrar handlers y rutas en `src/handlers/` y `src/routes/`.
+1. Implementar handlers y servicios (CRUD usuarios, opiniones, videojuegos).
+2. Integrar la API externa [IGDB](https://api-docs.igdb.com/#getting-started) para sincronizar juegos.
+3. Agregar modelos en `src/models/` y consultas SQLx.
 4. Regenerar caché SQLx con `make sqlx-prepare` cuando uses macros `query!`.
