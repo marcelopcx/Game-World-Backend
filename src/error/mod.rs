@@ -2,6 +2,11 @@ use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
 
 use crate::services::auth::AuthError;
+use crate::services::catalogo::CatalogoError;
+use crate::services::cloudinary::CloudinaryError;
+use crate::services::igdb::IgdbError;
+use crate::services::opinion::OpinionError;
+use crate::services::videojuego::VideojuegoError;
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -46,6 +51,12 @@ impl ApiError {
     }
 }
 
+impl From<CloudinaryError> for ApiError {
+    fn from(err: CloudinaryError) -> Self {
+        ApiError::ErrorDelServidor(err.to_string())
+    }
+}
+
 impl From<AuthError> for ApiError {
     fn from(err: AuthError) -> Self {
         match err {
@@ -57,6 +68,57 @@ impl From<AuthError> for ApiError {
             AuthError::Database(e) => ApiError::ErrorDelServidor(e.to_string()),
             AuthError::PasswordHash(e) => ApiError::ErrorDelServidor(e.to_string()),
             AuthError::Token(e) => ApiError::ErrorDelServidor(e.to_string()),
+        }
+    }
+}
+
+impl From<CatalogoError> for ApiError {
+    fn from(err: CatalogoError) -> Self {
+        match err {
+            CatalogoError::Database(e) => ApiError::ErrorDelServidor(e.to_string()),
+        }
+    }
+}
+
+impl From<VideojuegoError> for ApiError {
+    fn from(err: VideojuegoError) -> Self {
+        match err {
+            VideojuegoError::InvalidRequest(msg) => ApiError::SolicitudInvalida(msg),
+            VideojuegoError::NotFound => ApiError::NoEncontrado,
+            VideojuegoError::Conflict => {
+                ApiError::SolicitudInvalida("id externa duplicada".into())
+            }
+            VideojuegoError::Database(e) => ApiError::ErrorDelServidor(e.to_string()),
+        }
+    }
+}
+
+impl From<OpinionError> for ApiError {
+    fn from(err: OpinionError) -> Self {
+        match err {
+            OpinionError::InvalidRequest(msg) => ApiError::SolicitudInvalida(msg),
+            OpinionError::Forbidden => ApiError::Prohibido,
+            OpinionError::NotFound => ApiError::NoEncontrado,
+            OpinionError::Conflict => ApiError::SolicitudInvalida(
+                "ya existe una opinión para este videojuego".into(),
+            ),
+            OpinionError::Database(e) => ApiError::ErrorDelServidor(e.to_string()),
+        }
+    }
+}
+
+impl From<IgdbError> for ApiError {
+    fn from(err: IgdbError) -> Self {
+        match err {
+            IgdbError::NotConfigured => {
+                ApiError::ErrorDelServidor("credenciales IGDB no configuradas".into())
+            }
+            IgdbError::InvalidRequest(msg) => ApiError::SolicitudInvalida(msg),
+            IgdbError::NotFound => ApiError::NoEncontrado,
+            IgdbError::Http(msg) => ApiError::ErrorDelServidor(msg),
+            IgdbError::Database(e) => ApiError::ErrorDelServidor(e.to_string()),
+            IgdbError::Videojuego(e) => e.into(),
+            IgdbError::Catalogo(e) => e.into(),
         }
     }
 }

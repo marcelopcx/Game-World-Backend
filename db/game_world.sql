@@ -14,34 +14,22 @@ CREATE SCHEMA IF NOT EXISTS game_world;
 SET search_path TO game_world;
 
 -- -----------------------------------------------------------------------------
--- 1. Personas (información base del perfil)
--- -----------------------------------------------------------------------------
-CREATE TABLE personas (
-    id_persona SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) NOT NULL,
-    apellido VARCHAR(50) NOT NULL,
-    genero VARCHAR(20),
-    fecha_nacimiento DATE NOT NULL
-);
-
--- -----------------------------------------------------------------------------
--- 2. Usuarios (credenciales, roles y avatar)
+-- 1. Usuarios (credenciales, perfil, roles y avatar)
 -- -----------------------------------------------------------------------------
 CREATE TABLE usuarios (
     id_usuario SERIAL PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    nombre VARCHAR(50),
+    apellido VARCHAR(50),
     url_avatar VARCHAR(255),
-    fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    es_critico BOOLEAN NOT NULL DEFAULT FALSE,
-    id_persona INT NOT NULL UNIQUE,
-    CONSTRAINT fk_usuario_persona FOREIGN KEY (id_persona)
-        REFERENCES personas(id_persona) ON DELETE CASCADE
+    fecha_registro TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    es_critico BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 -- -----------------------------------------------------------------------------
--- 3. Catálogo: géneros y plataformas
+-- 2. Catálogo: géneros y plataformas
 -- -----------------------------------------------------------------------------
 CREATE TABLE generos (
     id_genero SERIAL PRIMARY KEY,
@@ -54,7 +42,7 @@ CREATE TABLE plataformas (
 );
 
 -- -----------------------------------------------------------------------------
--- 4. Videojuegos (datos locales + sincronización IGDB)
+-- 3. Videojuegos (datos locales + sincronización IGDB)
 -- -----------------------------------------------------------------------------
 CREATE TABLE videojuegos (
     id_videojuego SERIAL PRIMARY KEY,
@@ -78,7 +66,7 @@ CREATE TABLE videojuegos (
 );
 
 -- -----------------------------------------------------------------------------
--- 5. Relaciones N:M
+-- 4. Relaciones N:M
 -- -----------------------------------------------------------------------------
 CREATE TABLE videojuegos_generos (
     id_videojuegos_genero SERIAL PRIMARY KEY,
@@ -103,13 +91,13 @@ CREATE TABLE videojuegos_plataformas (
 );
 
 -- -----------------------------------------------------------------------------
--- 6. Opiniones (comentarios + puntaje)
+-- 5. Opiniones (comentarios + puntaje)
 -- -----------------------------------------------------------------------------
 CREATE TABLE opinion (
     id_opinion SERIAL PRIMARY KEY,
     puntaje INT NOT NULL,
     comentario TEXT NOT NULL,
-    fecha_publicacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_publicacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id_usuario INT NOT NULL,
     id_videojuego INT NOT NULL,
     id_plataforma INT,
@@ -124,12 +112,11 @@ CREATE TABLE opinion (
 );
 
 -- -----------------------------------------------------------------------------
--- 7. Índices (búsqueda, filtros y ordenamiento)
+-- 6. Índices (búsqueda, filtros y ordenamiento)
 -- -----------------------------------------------------------------------------
-CREATE INDEX idx_persona_nombre_lower ON personas (LOWER(nombre));
-CREATE INDEX idx_persona_apellido_lower ON personas (LOWER(apellido));
-
 CREATE INDEX idx_usuario_username_lower ON usuarios (LOWER(username));
+CREATE INDEX idx_usuario_nombre_lower ON usuarios (LOWER(nombre));
+CREATE INDEX idx_usuario_apellido_lower ON usuarios (LOWER(apellido));
 CREATE INDEX idx_usuario_email_lower ON usuarios (LOWER(email));
 CREATE INDEX idx_usuario_es_critico ON usuarios (es_critico);
 
@@ -154,24 +141,8 @@ CREATE INDEX idx_opinion_fecha_publicacion ON opinion (fecha_publicacion);
 CREATE INDEX idx_opinion_puntaje ON opinion (puntaje);
 
 -- -----------------------------------------------------------------------------
--- 8. Funciones y triggers
+-- 7. Funciones y triggers
 -- -----------------------------------------------------------------------------
-
--- Al borrar un usuario: eliminar la persona asociada (relación 1:1).
-CREATE OR REPLACE FUNCTION fn_borrar_persona_al_eliminar_usuario()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    DELETE FROM personas WHERE id_persona = OLD.id_persona;
-    RETURN OLD;
-END;
-$$;
-
-CREATE TRIGGER trg_usuario_borra_persona
-    AFTER DELETE ON usuarios
-    FOR EACH ROW
-    EXECUTE PROCEDURE fn_borrar_persona_al_eliminar_usuario();
 
 -- Mantiene promedios separados (usuarios normales vs críticos) por videojuego.
 CREATE OR REPLACE FUNCTION fn_actualizar_promedios_videojuego()

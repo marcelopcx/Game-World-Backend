@@ -7,8 +7,7 @@
 
 ## Tablas principales
 
-- `personas` — Datos personales del perfil
-- `usuarios` — Credenciales, avatar y flag `es_critico`
+- `usuarios` — Credenciales, username, avatar y flag `es_critico` (nombre/apellido opcionales)
 - `generos` / `plataformas` — Catálogos para filtros
 - `videojuegos` — Juegos locales sincronizados desde IGDB (`id_externa`)
 - `videojuegos_generos` / `videojuegos_plataformas` — Relaciones N:M

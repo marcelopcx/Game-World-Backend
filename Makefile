@@ -1,4 +1,4 @@
-.PHONY: setup reset-db run check db-logs sqlx-prepare
+.PHONY: setup reset-db migrate-db run check db-logs sqlx-prepare test-api bruno
 
 # Regenera .sqlx/ contra Postgres local (requiere Docker + esquema aplicado).
 sqlx-prepare:
@@ -7,6 +7,9 @@ sqlx-prepare:
 
 setup:
 	@./scripts/setup.sh
+
+migrate-db:
+	@./scripts/migrate-db.sh
 
 reset-db:
 	@./scripts/reset-db.sh
@@ -19,3 +22,11 @@ check:
 
 db-logs:
 	@docker compose logs -f db
+
+test-api:
+	@./scripts/test-api.sh
+
+bruno:
+	@chmod +x scripts/run-bruno.sh
+	@mkdir -p API/reports
+	@./scripts/run-bruno.sh

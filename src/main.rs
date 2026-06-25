@@ -1,6 +1,6 @@
 use actix_web::{web, App, HttpServer};
 use backend::config::AppConfig;
-use backend::{db, routes};
+use backend::{db, routes, services};
 use std::net::UdpSocket;
 
 fn local_ip() -> Option<String> {
@@ -15,6 +15,16 @@ async fn main() -> std::io::Result<()> {
     let pool = db::create_pool(&config.database_url)
         .await
         .expect("No se pudo conectar a la base de datos");
+
+    if let Err(e) = services::igdb::poblar_catalogo(
+        &pool,
+        &config.igdb,
+        config.catalogo_min_juegos,
+    )
+    .await
+    {
+        eprintln!("ADVERTENCIA: no se pudo completar el catálogo de videojuegos: {e}");
+    }
 
     let host = config.host.clone();
     let port = config.port;

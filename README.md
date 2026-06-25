@@ -50,6 +50,9 @@ El cliente móvil está en el repositorio del frontend dentro de `02 - Game Worl
    JWT_EXPIRATION_HOURS=24
    HOST=0.0.0.0
    PORT=8080
+   CLOUDINARY_CLOUD_NAME=mpc-uru
+   CLOUDINARY_UPLOAD_PRESET=n3n6sbhv
+   CLOUDINARY_FOLDER=game-world
    ```
 
 5. **Iniciá el servidor:**

@@ -1,1 +1,5 @@
-// Agregá aquí los structs de request/response y filas de base de datos.
+pub mod catalogo;
+pub mod opinion;
+pub mod pagination;
+pub mod usuario;
+pub mod videojuego;

@@ -26,6 +26,7 @@ schema_exists() {
 
 if schema_exists; then
   echo "→ Esquema game_world ya está aplicado."
+  "$ROOT/scripts/migrate-db.sh"
 else
   echo "→ Aplicando esquema desde db/game_world.sql..."
   docker compose exec -T db psql -U gameworld -d game_world < db/game_world.sql
