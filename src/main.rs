@@ -17,14 +17,17 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("No se pudo conectar a la base de datos");
 
-    if let Err(e) = services::igdb::poblar_catalogo(
-        &pool,
-        &config.igdb,
-        config.catalogo_min_juegos,
-    )
-    .await
+    // El catálogo IGDB puede tardar minutos; no bloquear el arranque del servidor
+    // (Render exige que /health responda antes del timeout del deploy).
     {
-        eprintln!("ADVERTENCIA: no se pudo completar el catálogo de videojuegos: {e}");
+        let pool_bg = pool.clone();
+        let igdb = config.igdb.clone();
+        let min_juegos = config.catalogo_min_juegos;
+        actix_web::rt::spawn(async move {
+            if let Err(e) = services::igdb::poblar_catalogo(&pool_bg, &igdb, min_juegos).await {
+                eprintln!("ADVERTENCIA: no se pudo completar el catálogo de videojuegos: {e}");
+            }
+        });
     }
 
     let host = config.host.clone();
