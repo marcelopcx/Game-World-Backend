@@ -1,0 +1,34 @@
+# Render Blueprint — Game World Backend
+# Repo: https://github.com/marcelopcx/Game-World-Backend
+
+services:
+  - type: web
+    name: game-world-api
+    runtime: rust
+    plan: free
+    buildCommand: cargo build --release
+    startCommand: ./target/release/backend
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION_HOURS
+        value: "24"
+      - key: HOST
+        value: 0.0.0.0
+      - key: CLOUDINARY_CLOUD_NAME
+        value: mpc-uru
+      - key: CLOUDINARY_UPLOAD_PRESET
+        value: n3n6sbhv
+      - key: CLOUDINARY_FOLDER
+        value: game-world
+      - key: DEFAULT_AVATAR_URL
+        value: https://res.cloudinary.com/mpc-uru/image/upload/game-world/avatars/default.png
+      - key: IGDB_CLIENT_ID
+        sync: false
+      - key: IGDB_CLIENT_SECRET
+        sync: false
+      - key: CATALOGO_MIN_JUEGOS
+        value: "1000"

@@ -8,19 +8,58 @@ pub enum CatalogoError {
     Database(#[from] sqlx::Error),
 }
 
+fn nombre_genero_es(nombre: &str) -> String {
+    match nombre {
+        "Racing" => "Carreras".to_string(),
+        "Sport" => "Deportes".to_string(),
+        "Platform" => "Plataformas".to_string(),
+        "Adventure" => "Aventura".to_string(),
+        "Role-playing (RPG)" => "RPG".to_string(),
+        "Strategy" => "Estrategia".to_string(),
+        "Simulator" => "Simulación".to_string(),
+        "Fighting" => "Lucha".to_string(),
+        "Shooter" => "Disparos".to_string(),
+        "Puzzle" => "Puzzle".to_string(),
+        "Indie" => "Indie".to_string(),
+        other => other.to_string(),
+    }
+}
+
 pub async fn listar_generos(pool: &PgPool) -> Result<Vec<Genero>, CatalogoError> {
-    let generos = sqlx::query_as::<_, Genero>(
-        "SELECT id_genero, nombre FROM generos ORDER BY LOWER(nombre)",
+    let mut generos = sqlx::query_as::<_, Genero>(
+        r#"
+        SELECT g.id_genero, g.nombre
+        FROM generos g
+        WHERE EXISTS (
+            SELECT 1
+            FROM videojuegos_generos vg
+            WHERE vg.id_genero = g.id_genero
+        )
+        ORDER BY LOWER(g.nombre)
+        "#,
     )
     .fetch_all(pool)
     .await?;
+
+    for genero in &mut generos {
+        genero.nombre = nombre_genero_es(&genero.nombre);
+    }
 
     Ok(generos)
 }
 
 pub async fn listar_plataformas(pool: &PgPool) -> Result<Vec<Plataforma>, CatalogoError> {
     let plataformas = sqlx::query_as::<_, Plataforma>(
-        "SELECT id_plataforma, nombre FROM plataformas ORDER BY LOWER(nombre)",
+        r#"
+        SELECT p.id_plataforma, p.nombre
+        FROM plataformas p
+        WHERE EXISTS (
+            SELECT 1
+            FROM videojuegos_plataformas vp
+            WHERE vp.id_plataforma = p.id_plataforma
+        )
+        ORDER BY LOWER(p.nombre)
+        "#,
     )
     .fetch_all(pool)
     .await?;

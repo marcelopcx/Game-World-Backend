@@ -77,7 +77,9 @@ pub struct UpdateVideojuegoRequest {
 pub struct VideojuegoListQuery {
     pub q: Option<String>,
     pub genero: Option<i32>,
+    pub generos: Option<String>,
     pub plataforma: Option<i32>,
+    pub plataformas: Option<String>,
     pub fecha_desde: Option<NaiveDate>,
     pub fecha_hasta: Option<NaiveDate>,
     pub puntaje_min: Option<f64>,
@@ -86,6 +88,76 @@ pub struct VideojuegoListQuery {
     pub order: Option<String>,
     pub page: Option<i64>,
     pub limit: Option<i64>,
+}
+
+impl VideojuegoListQuery {
+    fn parse_id_list(value: &Option<String>) -> Option<Vec<i32>> {
+        let raw = value.as_ref()?.trim();
+        if raw.is_empty() {
+            return None;
+        }
+
+        let ids: Vec<i32> = raw
+            .split(',')
+            .filter_map(|part| part.trim().parse::<i32>().ok())
+            .collect();
+
+        if ids.is_empty() {
+            None
+        } else {
+            Some(ids)
+        }
+    }
+
+    fn expand_genero_ids(ids: Vec<i32>) -> Vec<i32> {
+        use std::collections::HashSet;
+
+        const ALIAS: &[(i32, &[i32])] = &[
+            (2, &[16]),   // Aventura -> Adventure
+            (3, &[20]),   // RPG -> Role-playing (RPG)
+            (4, &[124]),  // Estrategia -> Strategy
+            (5, &[96]),   // Simulación -> Simulator
+            (6, &[267]),  // Deportes -> Sport
+            (7, &[18]),   // Carreras -> Racing
+            (9, &[22]),   // Plataformas -> Platform
+            (11, &[29]),  // Lucha -> Fighting
+        ];
+
+        let mut expanded = HashSet::new();
+
+        for id in ids {
+            expanded.insert(id);
+
+            for (legacy_id, aliases) in ALIAS {
+                if id == *legacy_id {
+                    for alias in *aliases {
+                        expanded.insert(*alias);
+                    }
+                }
+            }
+        }
+
+        let mut result: Vec<i32> = expanded.into_iter().collect();
+        result.sort_unstable();
+        result
+    }
+
+    pub fn generos_filtro(&self) -> Option<Vec<i32>> {
+        if let Some(ids) = Self::parse_id_list(&self.generos) {
+            return Some(Self::expand_genero_ids(ids));
+        }
+
+        self.genero
+            .map(|id| Self::expand_genero_ids(vec![id]))
+    }
+
+    pub fn plataformas_filtro(&self) -> Option<Vec<i32>> {
+        if let Some(ids) = Self::parse_id_list(&self.plataformas) {
+            return Some(ids);
+        }
+
+        self.plataforma.map(|id| vec![id])
+    }
 }
 
 impl VideojuegoRow {

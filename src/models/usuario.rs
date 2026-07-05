@@ -73,6 +73,7 @@ pub struct RegisterRequest {
     pub password: String,
     pub nombre: Option<String>,
     pub apellido: Option<String>,
+    pub es_critico: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

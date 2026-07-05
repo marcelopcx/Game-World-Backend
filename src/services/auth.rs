@@ -169,8 +169,8 @@ pub async fn register(
 
     let user = sqlx::query_as::<_, Usuario>(
         r#"
-        INSERT INTO usuarios (username, email, password, nombre, apellido, url_avatar)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO usuarios (username, email, password, nombre, apellido, url_avatar, es_critico)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id_usuario, username, email, url_avatar, es_critico
         "#,
     )
@@ -180,6 +180,7 @@ pub async fn register(
     .bind(optional_trim(&body.nombre))
     .bind(optional_trim(&body.apellido))
     .bind(&avatar)
+    .bind(body.es_critico.unwrap_or(false))
     .fetch_one(pool)
     .await
     .map_err(conflicto_duplicado)?;

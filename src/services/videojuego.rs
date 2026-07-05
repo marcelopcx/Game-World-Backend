@@ -87,11 +87,6 @@ async fn listar_desde_db(
 ) -> Result<PaginatedResponse<VideojuegoResponse>, VideojuegoError> {
     let pagination = PaginationParams::from_query(query.page, query.limit);
     let tipo_puntaje = query.tipo_puntaje.as_deref().unwrap_or("usuarios");
-    let puntaje_col = if tipo_puntaje == "criticos" {
-        "v2.promedio_puntaje_criticos"
-    } else {
-        "v2.promedio_puntaje_usuarios"
-    };
 
     let sort_col = match query.sort.as_deref() {
         Some("fecha") => "v.fecha_lanzamiento",
@@ -110,6 +105,15 @@ async fn listar_desde_db(
         .filter(|s| !s.trim().is_empty())
         .map(|s| format!("%{}%", s.trim().to_lowercase()));
 
+    let generos_filtro = query.generos_filtro();
+    let plataformas_filtro = query.plataformas_filtro();
+
+    let puntaje_expr = if tipo_puntaje == "criticos" {
+        "CASE WHEN v2.cantidad_opiniones_criticos = 0 THEN 0::float8 ELSE COALESCE(v2.promedio_puntaje_criticos, 0::float8) END"
+    } else {
+        "CASE WHEN v2.cantidad_opiniones_usuarios = 0 THEN 0::float8 ELSE COALESCE(v2.promedio_puntaje_usuarios, 0::float8) END"
+    };
+
     let count_sql = format!(
         r#"
         SELECT COUNT(DISTINCT v2.id_videojuego)::bigint
@@ -117,19 +121,19 @@ async fn listar_desde_db(
         LEFT JOIN videojuegos_generos vg ON vg.id_videojuego = v2.id_videojuego
         LEFT JOIN videojuegos_plataformas vp ON vp.id_videojuego = v2.id_videojuego
         WHERE ($1::text IS NULL OR LOWER(v2.titulo) LIKE $1)
-          AND ($2::int IS NULL OR vg.id_genero = $2)
-          AND ($3::int IS NULL OR vp.id_plataforma = $3)
+          AND ($2::int[] IS NULL OR vg.id_genero = ANY($2))
+          AND ($3::int[] IS NULL OR vp.id_plataforma = ANY($3))
           AND ($4::date IS NULL OR v2.fecha_lanzamiento >= $4)
           AND ($5::date IS NULL OR v2.fecha_lanzamiento <= $5)
-          AND ($6::float8 IS NULL OR {puntaje_col} >= $6)
+          AND ($6::float8 IS NULL OR {puntaje_expr} >= $6)
         "#
     );
 
     let puntaje_min = query.puntaje_min;
     let total: i64 = sqlx::query_scalar(&count_sql)
         .bind(&q_pattern)
-        .bind(query.genero)
-        .bind(query.plataforma)
+        .bind(&generos_filtro)
+        .bind(&plataformas_filtro)
         .bind(query.fecha_desde)
         .bind(query.fecha_hasta)
         .bind(puntaje_min)
@@ -158,11 +162,11 @@ async fn listar_desde_db(
             LEFT JOIN videojuegos_generos vg ON vg.id_videojuego = v2.id_videojuego
             LEFT JOIN videojuegos_plataformas vp ON vp.id_videojuego = v2.id_videojuego
             WHERE ($1::text IS NULL OR LOWER(v2.titulo) LIKE $1)
-              AND ($2::int IS NULL OR vg.id_genero = $2)
-              AND ($3::int IS NULL OR vp.id_plataforma = $3)
+              AND ($2::int[] IS NULL OR vg.id_genero = ANY($2))
+              AND ($3::int[] IS NULL OR vp.id_plataforma = ANY($3))
               AND ($4::date IS NULL OR v2.fecha_lanzamiento >= $4)
               AND ($5::date IS NULL OR v2.fecha_lanzamiento <= $5)
-              AND ($6::float8 IS NULL OR {puntaje_col} >= $6)
+              AND ($6::float8 IS NULL OR {puntaje_expr} >= $6)
         )
         ORDER BY {sort_col} {order}
         LIMIT $7 OFFSET $8
@@ -171,8 +175,8 @@ async fn listar_desde_db(
 
     let rows = sqlx::query_as::<_, VideojuegoRow>(&list_sql)
         .bind(&q_pattern)
-        .bind(query.genero)
-        .bind(query.plataforma)
+        .bind(&generos_filtro)
+        .bind(&plataformas_filtro)
         .bind(query.fecha_desde)
         .bind(query.fecha_hasta)
         .bind(puntaje_min)

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 actix-web = "4.13.0"
+actix-cors = "0.7.1"
 actix-multipart = "0.7.2"
 futures-util = "0.3.32"
 sqlx = { version = "0.8.6", features = [
